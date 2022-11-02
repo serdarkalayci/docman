@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+</head>
+<body>
+<script src="wasm_exec.js"></script>
+<script src="load_wasm.js"></script>
+<script>
+
+    loadWasm("wasm-go.wasm")
+        .then((wasm) => {
+            console.log("main.wasm is loaded 👋");
+        })
+        .catch((error) => {
+            console.log("ouch", error);
+        });
+</script>
+<div id="main" class="center">
+    <h1>Webassembly tutorial</h1>
+    <h2 id="description">Sample 1 | Sending text to the console</h2>
+    <button onclick="showDate()">Click me and I'll show you the date</button>
+</div>
+</body>
+</html>

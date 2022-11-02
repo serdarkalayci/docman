@@ -1,0 +1,23 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - GOOS=js GOARCH=wasm go build -o  static/docman.wasm ./adapters/comm/wasm/*
+    silent: true
+  deploy-simple:
+    cmds:
+      - docker compose -f docker-compose-dev.yaml up -d --build --remove-orphans
+    silent: true
+  deploy-whole:
+    cmds:
+      - docker compose -f docker-compose.yaml up -d
+    silent: true
+  stop-simple:
+    cmds:
+      - docker compose -f docker-compose-dev.yaml down
+    silent: true
+  stop-whole:
+    cmds:
+      - docker compose -f docker-compose.yaml down
+    silent: true

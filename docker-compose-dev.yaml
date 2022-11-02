@@ -1,0 +1,28 @@
+version: '3.7'
+services:
+  docman:
+    build: .
+    container_name: docman
+    ports:
+      - "5550:5550"
+    environment: 
+      BASE_URL : ":5550"
+      ConnectionString: "https://127.0.0.1:8529"
+      DatabaseName: docman
+      DbUserName: root
+      DbPassword: password
+    networks:
+      - docman-network      
+  arangodb:
+    image: arangodb/arangodb:3.10.0
+    ports:
+      - 8529:8529
+    environment:
+      ARANGO_ROOT_PASSWORD: password
+    volumes:
+      - ./arangodump:/docker-entrypoint-initdb.d/dumps/docman
+      - dbdata:/var/lib/arangodb3
+networks:
+  docman-network:    
+volumes:
+  dbdata:

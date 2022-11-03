@@ -25,3 +25,24 @@ func MapDocument2DocumentDAO(p domain.Document) dao.DocumentDAO {
 		Name: p.Name,
 	}
 }
+
+func MapFolderDAO2Folder(f dao.FolderDAO) domain.Folder {
+	return domain.Folder{
+		ID:   f.ID,
+		Name: f.Name,
+	}
+}
+
+func MapFolderTreeDAO2Folder(ft dao.FolderTreeDAO) domain.Folder {
+	folder := domain.Folder{
+		ID:   ft.CurrentFolder.ID,
+		Name: ft.CurrentFolder.Name,
+	}
+	for _, d := range ft.Documents {
+		folder.Documents = append(folder.Documents, MapDocumentDAO2Document(d))
+	}
+	for _, f := range ft.SubFolders {
+		folder.Folders = append(folder.Folders, MapFolderDAO2Folder(f))
+	}
+	return folder
+}

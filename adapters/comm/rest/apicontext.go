@@ -88,12 +88,13 @@ func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server,
 	getR.HandleFunc("/version", apiContext.Version)
 	getR.HandleFunc("/health/live", apiContext.Live)
 	getR.HandleFunc("/health/ready", apiContext.Ready)
+	//folder handlers
+	getR.HandleFunc("/folder/{id}", apiContext.GetFolder)
 	// document handlers
-	getR.HandleFunc("/document", apiContext.GetDocuments)
 	getR.HandleFunc("/document/{id}", apiContext.GetDocument)
 	postPR := sm.Methods(http.MethodPost).Subrouter()
 	postPR.Use(apiContext.MiddlewareValidateNewDocument)
-	postPR.HandleFunc("/document", apiContext.Adddocument)
+	postPR.HandleFunc("/document", apiContext.AddDocument)
 	putPR := sm.Methods(http.MethodPut).Subrouter()
 	putPR.Use(apiContext.MiddlewareValidateNewDocument)
 	putPR.HandleFunc("/document/{id}", apiContext.UpdateDocument)

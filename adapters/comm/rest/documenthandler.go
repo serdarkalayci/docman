@@ -14,40 +14,38 @@ import (
 
 type validateddocument struct{}
 
-// swagger:route GET /people document GetDocuments
+// swagger:route GET /folder folder GetFolder
 // Return all the documents
 // responses:
 //	200: OK
 //	500: errorResponse
 
-// GetDocuments gets all the documents of the Titanic
-func (ctx *APIContext) GetDocuments(rw http.ResponseWriter, r *http.Request) {
-	span := createSpan("docman.ListAll", r)
+// GetFolder gets all the documents and folders inside the specified folder. If no folder is specified, it returns the root folder.
+func (ctx *APIContext) GetFolder(rw http.ResponseWriter, r *http.Request) {
+	span := createSpan("docman.GetFolder", r)
 	defer span.Finish()
-
+	// parse the document id from the url
+	vars := mux.Vars(r)
+	id := vars["id"]
 	DocumentService := application.NewDocumentService(ctx.documentRepo)
-	documents, err := DocumentService.List()
+	folder, err := DocumentService.List(id)
 	if err != nil {
-		respondWithError(rw, r, 500, "Cannot get documents from database")
+		respondWithError(rw, r, 500, "Cannot get folder contents from database")
 	} else {
-		documentDTOs := make([]dto.DocumentResponseDTO, 0)
-		for _, p := range documents {
-			pDTO := mappers.MapDocument2DocumentResponseDTO(p)
-			documentDTOs = append(documentDTOs, pDTO)
-		}
-		respondWithJSON(rw, r, 200, documentDTOs)
+		fr := mappers.MapFolder2FolderResponseDTO(folder)
+		respondWithJSON(rw, r, 200, fr)
 	}
 
 }
 
-// swagger:route POST /people document Adddocument
+// swagger:route POST /document document Adddocument
 // Adds a new document
 // responses:
 //	201: Created
 //	500: errorResponse
 
 // Adddocument adds a new documents to the Titanic
-func (ctx *APIContext) Adddocument(rw http.ResponseWriter, r *http.Request) {
+func (ctx *APIContext) AddDocument(rw http.ResponseWriter, r *http.Request) {
 	span := createSpan("docman.Add", r)
 	defer span.Finish()
 	// Get document data from payload
@@ -63,7 +61,7 @@ func (ctx *APIContext) Adddocument(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// swagger:route GET /people/{id} document GetDocument
+// swagger:route GET /document/{id} document GetDocument
 // Return the document with the given id
 // responses:
 //	200: OK
@@ -95,7 +93,7 @@ func (ctx *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// swagger:route PUT /people{id} document UpdateDocument
+// swagger:route PUT /document{id} document UpdateDocument
 // Updates an existing document
 // responses:
 //	201: Created
@@ -129,7 +127,7 @@ func (ctx *APIContext) UpdateDocument(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// swagger:route DELETE /people/{id} document DeleteDocument
+// swagger:route DELETE /document/{id} document DeleteDocument
 // Deletes the document with the given id
 // responses:
 //	200: OK

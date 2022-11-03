@@ -3,9 +3,10 @@ package arangodb
 import (
 	"context"
 	"errors"
+	"time"
+
 	driver "github.com/arangodb/go-driver"
 	"go.mongodb.org/mongo-driver/bson"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/serdarkalayci/docman/adapters/data/arangodb/mappers"
@@ -26,27 +27,33 @@ func newDocumentRepository(database driver.Database) DocumentRepository {
 
 // List loads all the document records from tha database and returns it
 // Returns an error if database fails to provide service
-func (dr DocumentRepository) List() ([]domain.Document, error) {
+func (dr DocumentRepository) List(currentFolder string) (domain.Folder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	//var documentDAO dao.DocumentDAO
-	documentDAOs, err := dr.helper.Find(ctx)
+	if currentFolder == "" {
+		currentFolder = "1" // which is the root folder
+	}
+	folderTreeDAO, err := dr.helper.Find(ctx, currentFolder)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting documents")
-		return nil, errors.New("Error getting documents")
+		return domain.Folder{}, errors.New("Error getting documents")
 	}
-	documents := make([]domain.Document, 0)
-	for _, documentDAO := range documentDAOs {
-		document := mappers.MapDocumentDAO2Document(documentDAO)
-		documents = append(documents, document)
-	}
-	return documents, nil
+	folder := mappers.MapFolderTreeDAO2Folder(folderTreeDAO)
+	return folder, nil
 }
 
 // Add adds a new document to the underlying database.
 // It returns the document inserted on success or error
 func (dr DocumentRepository) Add(p domain.Document) (domain.Document, error) {
-
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	newID, err := dr.helper.InsertOne(ctx, p)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error adding document")
+		return domain.Document{}, errors.New("Error adding document")
+	}
+	p.ID = newID
 	return p, nil
 }
 

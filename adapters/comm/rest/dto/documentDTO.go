@@ -35,3 +35,14 @@ type DocumentRequestDTO struct {
 	// Content is the content of the document.
 	Content string `json:"content"`
 }
+
+type FolderResponseDTO struct {
+	// ID is the unique identifier of the folder.
+	ID string `json:"id"`
+	// Name is the name of the folder.
+	Name string `json:"name"`
+	// Folders is the list of folders in the folder.
+	Folders []FolderResponseDTO `json:"folders"`
+	// Documents is the list of documents in the folder.
+	Documents []DocumentResponseDTO `json:"documents"`
+}

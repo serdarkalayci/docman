@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// // MockHTTPClient is the client that mocks original http.Client
+// MockArangoHelper is the struct that mimics original arangodb.Client
 type MockArangoHelper struct {
 }
 
@@ -24,15 +24,15 @@ var (
 	// GetInsertOneFunc will be used to get different InsertOne functions for testing purposes
 	GetInsertOneFunc func(ctx context.Context, document interface{}) (string, error)
 	// GetListFunc will be used to get different List functions for testing purposes
-	GetListFunc func(ctx context.Context) ([]dao.DocumentDAO, error)
+	GetListFunc func(ctx context.Context, id string) (dao.FolderTreeDAO, error)
 )
 
 // func (client MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 // 	return GetDoFunc(req)
 // }
 
-func (ah MockArangoHelper) Find(ctx context.Context) ([]dao.DocumentDAO, error) {
-	return GetListFunc(ctx)
+func (ah MockArangoHelper) Find(ctx context.Context, id string) (dao.FolderTreeDAO, error) {
+	return GetListFunc(ctx, id)
 }
 func (ah MockArangoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {
 	return GetInsertOneFunc(ctx, document)
@@ -48,78 +48,78 @@ func (ah MockArangoHelper) DeleteOne(ctx context.Context, id string) (int, error
 }
 
 func TestDocumentRepository_Delete_Error(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 0, errors.New("Whatever error")
 	}
-	err := pr.Delete("id")
+	err := dr.Delete("id")
 	assert.EqualError(t, err, "Error deleting the document")
 }
 
 func TestDocumentRepository_Delete_ResultNotOne(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 0, nil
 	}
-	err := pr.Delete("this_id")
+	err := dr.Delete("this_id")
 	assert.EqualError(t, err, "Cannot find the document with the ID this_id")
 }
 
 func TestDocumentRepository_Delete_ResultSuccess(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 1, nil
 	}
-	err := pr.Delete("this_id")
+	err := dr.Delete("this_id")
 	assert.Nil(t, err)
 }
 
 func TestDocumentRepository_Update_Error(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 0, errors.New("Whatever error")
 	}
-	err := pr.Update("id", domain.Document{})
+	err := dr.Update("id", domain.Document{})
 	assert.EqualError(t, err, "Error updating the document")
 }
 
 func TestDocumentRepository_Update_ResultNotOne(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 0, nil
 	}
-	err := pr.Update("this_id", domain.Document{})
+	err := dr.Update("this_id", domain.Document{})
 	assert.EqualError(t, err, "Cannot find the document with the ID this_id")
 }
 
 func TestDocumentRepository_Update_ResultSuccess(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 1, nil
 	}
-	err := pr.Update("id", domain.Document{})
+	err := dr.Update("id", domain.Document{})
 	assert.Nil(t, err)
 }
 
 func TestDocumentRepository_FindOne_Error(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetFindOneFunc = func(ctx context.Context, id string) (dao.DocumentDAO, error) {
 		return dao.DocumentDAO{}, errors.New("Cannot find the document with the ID this_id")
 	}
-	pDAO, err := pr.Get("this_id")
+	pDAO, err := dr.Get("this_id")
 	assert.Equal(t, pDAO, domain.Document{})
 	assert.EqualError(t, err, "Cannot find the document with the ID this_id")
 }
 
 func TestDocumentRepository_FindOne_Success(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetFindOneFunc = func(ctx context.Context, id string) (dao.DocumentDAO, error) {
 		return dao.DocumentDAO{
 			ID:   "id",
 			Name: "name",
 		}, nil
 	}
-	pDAO, err := pr.Get("this_id")
+	pDAO, err := dr.Get("this_id")
 	assert.Equal(t, pDAO, domain.Document{
 		ID:   "id",
 		Name: "name",
@@ -128,67 +128,98 @@ func TestDocumentRepository_FindOne_Success(t *testing.T) {
 }
 
 func TestDocumentRepository_InsertOne_Error(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetInsertOneFunc = func(ctx context.Context, document interface{}) (string, error) {
 		return "", errors.New("Whatever error")
 	}
-	document, err := pr.Add(domain.Document{
+	document, err := dr.Add(domain.Document{
 		ID: "this_id",
 	})
 	assert.Equal(t, document, domain.Document{})
-	assert.EqualError(t, err, "Cannot insert the document")
+	assert.EqualError(t, err, "Error adding document")
 }
 
 func TestDocumentRepository_InsertOne_Success(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
+	dr := DocumentRepository{MockArangoHelper{}}
 	GetInsertOneFunc = func(ctx context.Context, document interface{}) (string, error) {
 		return "new_id", nil
 	}
-	document, err := pr.Add(domain.Document{
-		ID: "this_id",
+	document, err := dr.Add(domain.Document{
+		Name: "name",
 	})
 	assert.Equal(t, document, domain.Document{
-		ID: "this_id",
+		ID:   "new_id",
+		Name: "name",
 	})
 	assert.Nil(t, err)
 }
 
 func TestDocumentRepository_List_Error(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
-	GetListFunc = func(ctx context.Context) ([]dao.DocumentDAO, error) {
-		return nil, errors.New("Whatever error")
+	dr := DocumentRepository{MockArangoHelper{}}
+	GetListFunc = func(ctx context.Context, id string) (dao.FolderTreeDAO, error) {
+		return dao.FolderTreeDAO{}, errors.New("Whatever error")
 	}
-	result, err := pr.List()
-	assert.Nil(t, result)
+	result, err := dr.List("")
+	assert.Equal(t, domain.Folder{}, result)
 	assert.EqualError(t, err, "Error getting documents")
 }
 
 func TestDocumentRepository_List_Success(t *testing.T) {
-	pr := DocumentRepository{MockArangoHelper{}}
-	pDAOs := []dao.DocumentDAO{
-		dao.DocumentDAO{
-			ID:   "id1",
-			Name: "name1",
+	dr := DocumentRepository{MockArangoHelper{}}
+	ftDAO := dao.FolderTreeDAO{
+		CurrentFolder: dao.FolderDAO{
+			ID:   "folders/0",
+			Name: "current",
 		},
-		dao.DocumentDAO{
-			ID:   "id2",
-			Name: "name2",
+		SubFolders: []dao.FolderDAO{
+			{
+				ID:   "folders/1",
+				Name: "sub1",
+			},
+			{
+				ID:   "folders/2",
+				Name: "sub2",
+			},
+		},
+		Documents: []dao.DocumentDAO{
+			{
+				ID:   "documents/1",
+				Name: "name1",
+			},
+			{
+				ID:   "documents/2",
+				Name: "name2",
+			},
 		},
 	}
-
-	GetListFunc = func(ctx context.Context) ([]dao.DocumentDAO, error) {
-		return pDAOs, nil
+	folder := domain.Folder{
+		ID:   "folders/0",
+		Name: "current",
+		Folders: []domain.Folder{
+			{
+				ID:   "folders/1",
+				Name: "sub1",
+			},
+			{
+				ID:   "folders/2",
+				Name: "sub2",
+			},
+		},
+		Documents: []domain.Document{
+			{
+				ID:   "documents/1",
+				Name: "name1",
+			},
+			{
+				ID:   "documents/2",
+				Name: "name2",
+			},
+		},
 	}
-	result, err := pr.List()
+	GetListFunc = func(ctx context.Context, id string) (dao.FolderTreeDAO, error) {
+		return ftDAO, nil
+	}
+	result, err := dr.List("")
 	assert.Nil(t, err)
-	assert.Equal(t, result, []domain.Document{
-		domain.Document{
-			ID:   "id1",
-			Name: "name1",
-		},
-		domain.Document{
-			ID:   "id2",
-			Name: "name2",
-		},
-	})
+	assert.Equal(t, result, folder)
 }

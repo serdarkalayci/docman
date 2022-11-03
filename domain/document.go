@@ -11,8 +11,6 @@ type Document struct {
 	// Name is the name of the document.
 	Name string
 	// Content is the content of the document.
-	Path string
-	// Content is the content of the document.
 	Content string
 	// DocumentHistory is the history of the document.
 	DocumentHistory []History
@@ -28,10 +26,10 @@ type History struct {
 }
 
 type Folder struct {
+	// ID is the unique identifier of the folder.
+	ID string
 	// Name is the name of the folder.
 	Name string
-	// Path is the path of the folder.
-	Path string
 	// Folders is the folders in the folder.
 	Folders []Folder
 	// Documents is the documents in the folder.

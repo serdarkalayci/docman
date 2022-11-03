@@ -3,8 +3,9 @@ package arangodb
 import (
 	"context"
 	"errors"
+	"fmt"
+
 	driver "github.com/arangodb/go-driver"
-	"github.com/rs/zerolog/log"
 	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
 )
 
@@ -12,9 +13,48 @@ type arangoHelper struct {
 	db driver.Database
 }
 
-func (ah arangoHelper) Find(ctx context.Context) ([]dao.DocumentDAO, error) {
-	var documentDAOs = make([]dao.DocumentDAO, 0)
-	return documentDAOs, errors.New("not implemented")
+func (ah arangoHelper) Find(ctx context.Context, id string) (dao.FolderTreeDAO, error) {
+	var folderTree dao.FolderTreeDAO
+	var currentFolder dao.FolderDAO
+	// Open "folders" collection
+	col, err := ah.db.Collection(nil, "folders")
+	if err != nil {
+		return dao.FolderTreeDAO{}, err
+	}
+	_, err = col.ReadDocument(nil, id, &currentFolder)
+	if err != nil {
+		return dao.FolderTreeDAO{}, err
+	}
+	folderTree.CurrentFolder = currentFolder
+	querystring := "FOR v, e, p IN 1..1 OUTBOUND @currentFolder GRAPH 'filesystem' RETURN v"
+	bindVars := map[string]interface{}{
+		"currentFolder": fmt.Sprintf("folders/%s", id),
+	}
+	cursor, err := ah.db.Query(ctx, querystring, bindVars)
+	if err != nil {
+		return dao.FolderTreeDAO{}, err
+	}
+	defer cursor.Close()
+	for {
+		var doc dao.DocumentDAO
+		meta, err := cursor.ReadDocument(ctx, &doc)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return dao.FolderTreeDAO{}, err
+		}
+		if meta.ID.Collection() == "folders" {
+			folder := dao.FolderDAO{
+				ID:   doc.ID,
+				Key:  doc.Key,
+				Name: doc.Name,
+			}
+			folderTree.SubFolders = append(folderTree.SubFolders, folder)
+		} else {
+			folderTree.Documents = append(folderTree.Documents, doc)
+		}
+	}
+	return folderTree, nil
 }
 
 func (ah arangoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {
@@ -22,16 +62,15 @@ func (ah arangoHelper) InsertOne(ctx context.Context, document interface{}) (str
 }
 func (ah arangoHelper) FindOne(ctx context.Context, id string) (dao.DocumentDAO, error) {
 	var documentDAO dao.DocumentDAO
-	// Open "books" collection
+	// Open "documents" collection
 	col, err := ah.db.Collection(nil, "documents")
 	if err != nil {
 		return documentDAO, err
 	}
-	metadata, err := col.ReadDocument(nil, id, &documentDAO)
+	_, err = col.ReadDocument(nil, id, &documentDAO)
 	if err != nil {
 		return documentDAO, err
 	}
-	log.Printf("Metadata: %v\n", metadata)
 	return documentDAO, nil
 }
 

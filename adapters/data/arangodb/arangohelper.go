@@ -3,7 +3,8 @@ package arangodb
 import (
 	"context"
 	"errors"
-	"github.com/arangodb/go-driver"
+	driver "github.com/arangodb/go-driver"
+	"github.com/rs/zerolog/log"
 	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
 )
 
@@ -21,7 +22,17 @@ func (ah arangoHelper) InsertOne(ctx context.Context, document interface{}) (str
 }
 func (ah arangoHelper) FindOne(ctx context.Context, id string) (dao.DocumentDAO, error) {
 	var documentDAO dao.DocumentDAO
-	return documentDAO, errors.New("not implemented")
+	// Open "books" collection
+	col, err := ah.db.Collection(nil, "documents")
+	if err != nil {
+		return documentDAO, err
+	}
+	metadata, err := col.ReadDocument(nil, id, &documentDAO)
+	if err != nil {
+		return documentDAO, err
+	}
+	log.Printf("Metadata: %v\n", metadata)
+	return documentDAO, nil
 }
 
 func (ah arangoHelper) UpdateOne(ctx context.Context, id string, update interface{}) (int, error) {

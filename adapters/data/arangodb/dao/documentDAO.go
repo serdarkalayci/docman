@@ -5,13 +5,13 @@ import "time"
 // DocumentDAO represents the struct of document type to be stored in mongoDB
 type DocumentDAO struct {
 	// ID is the unique identifier of the document.
-	ID string
+	ID string `json:"_key"`
 	// Name is the name of the document.
-	Name string
+	Name string `json:"name"`
 	// Content is the content of the document.
 	Path string
 	// Content is the content of the document.
-	Content string
+	Content string `json:"content"`
 	// DocumentHistory is the history of the document.
 	DocumentHistory []History
 }

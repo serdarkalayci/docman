@@ -11,7 +11,7 @@ import (
 )
 
 // // MockHTTPClient is the client that mocks original http.Client
-type MockMongoHelper struct {
+type MockArangoHelper struct {
 }
 
 var (
@@ -31,24 +31,24 @@ var (
 // 	return GetDoFunc(req)
 // }
 
-func (mh MockMongoHelper) Find(ctx context.Context) ([]dao.DocumentDAO, error) {
+func (ah MockArangoHelper) Find(ctx context.Context) ([]dao.DocumentDAO, error) {
 	return GetListFunc(ctx)
 }
-func (mh MockMongoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {
+func (ah MockArangoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {
 	return GetInsertOneFunc(ctx, document)
 }
-func (mh MockMongoHelper) FindOne(ctx context.Context, id string) (dao.DocumentDAO, error) {
+func (ah MockArangoHelper) FindOne(ctx context.Context, id string) (dao.DocumentDAO, error) {
 	return GetFindOneFunc(ctx, id)
 }
-func (mh MockMongoHelper) UpdateOne(ctx context.Context, id string, update interface{}) (int, error) {
+func (ah MockArangoHelper) UpdateOne(ctx context.Context, id string, update interface{}) (int, error) {
 	return GetUpdateFunc(ctx, id, update)
 }
-func (mh MockMongoHelper) DeleteOne(ctx context.Context, id string) (int, error) {
+func (ah MockArangoHelper) DeleteOne(ctx context.Context, id string) (int, error) {
 	return GetDeleteFunc(ctx, id)
 }
 
 func TestDocumentRepository_Delete_Error(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 0, errors.New("Whatever error")
 	}
@@ -57,7 +57,7 @@ func TestDocumentRepository_Delete_Error(t *testing.T) {
 }
 
 func TestDocumentRepository_Delete_ResultNotOne(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 0, nil
 	}
@@ -66,7 +66,7 @@ func TestDocumentRepository_Delete_ResultNotOne(t *testing.T) {
 }
 
 func TestDocumentRepository_Delete_ResultSuccess(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetDeleteFunc = func(ctx context.Context, id string) (int, error) {
 		return 1, nil
 	}
@@ -75,7 +75,7 @@ func TestDocumentRepository_Delete_ResultSuccess(t *testing.T) {
 }
 
 func TestDocumentRepository_Update_Error(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 0, errors.New("Whatever error")
 	}
@@ -84,7 +84,7 @@ func TestDocumentRepository_Update_Error(t *testing.T) {
 }
 
 func TestDocumentRepository_Update_ResultNotOne(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 0, nil
 	}
@@ -93,7 +93,7 @@ func TestDocumentRepository_Update_ResultNotOne(t *testing.T) {
 }
 
 func TestDocumentRepository_Update_ResultSuccess(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetUpdateFunc = func(ctx context.Context, id string, update interface{}) (int, error) {
 		return 1, nil
 	}
@@ -102,7 +102,7 @@ func TestDocumentRepository_Update_ResultSuccess(t *testing.T) {
 }
 
 func TestDocumentRepository_FindOne_Error(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetFindOneFunc = func(ctx context.Context, id string) (dao.DocumentDAO, error) {
 		return dao.DocumentDAO{}, errors.New("Cannot find the document with the ID this_id")
 	}
@@ -112,7 +112,7 @@ func TestDocumentRepository_FindOne_Error(t *testing.T) {
 }
 
 func TestDocumentRepository_FindOne_Success(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetFindOneFunc = func(ctx context.Context, id string) (dao.DocumentDAO, error) {
 		return dao.DocumentDAO{
 			ID:   "id",
@@ -128,7 +128,7 @@ func TestDocumentRepository_FindOne_Success(t *testing.T) {
 }
 
 func TestDocumentRepository_InsertOne_Error(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetInsertOneFunc = func(ctx context.Context, document interface{}) (string, error) {
 		return "", errors.New("Whatever error")
 	}
@@ -140,7 +140,7 @@ func TestDocumentRepository_InsertOne_Error(t *testing.T) {
 }
 
 func TestDocumentRepository_InsertOne_Success(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetInsertOneFunc = func(ctx context.Context, document interface{}) (string, error) {
 		return "new_id", nil
 	}
@@ -154,7 +154,7 @@ func TestDocumentRepository_InsertOne_Success(t *testing.T) {
 }
 
 func TestDocumentRepository_List_Error(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	GetListFunc = func(ctx context.Context) ([]dao.DocumentDAO, error) {
 		return nil, errors.New("Whatever error")
 	}
@@ -164,7 +164,7 @@ func TestDocumentRepository_List_Error(t *testing.T) {
 }
 
 func TestDocumentRepository_List_Success(t *testing.T) {
-	pr := DocumentRepository{MockMongoHelper{}}
+	pr := DocumentRepository{MockArangoHelper{}}
 	pDAOs := []dao.DocumentDAO{
 		dao.DocumentDAO{
 			ID:   "id1",

@@ -11,7 +11,7 @@ import (
 	"github.com/nicholasjackson/env"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	mongodb "github.com/serdarkalayci/docman/adapters/data/arangodb"
+	arangodb "github.com/serdarkalayci/docman/adapters/data/arangodb"
 
 	util "github.com/serdarkalayci/docman/util"
 )
@@ -23,7 +23,7 @@ func main() {
 	util.SetLogLevels()
 	env.Parse()
 	//dbContext := memory.NewDataContext()
-	dbContext, err := mongodb.NewDataContext()
+	dbContext, err := arangodb.NewDataContext()
 	if err != nil {
 		log.Fatal().Msg("Error received from data source. Quitting")
 		os.Exit(1)

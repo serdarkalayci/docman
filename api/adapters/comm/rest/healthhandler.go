@@ -3,7 +3,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/serdarkalayci/docman/application"
+	"github.com/serdarkalayci/docman/api/application"
 
 	"github.com/rs/zerolog/log"
 )

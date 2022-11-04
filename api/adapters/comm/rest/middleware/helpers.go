@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/serdarkalayci/docman/adapters/comm/rest/dto"
-	"github.com/serdarkalayci/docman/application"
+	"github.com/serdarkalayci/docman/api/adapters/comm/rest/dto"
+	"github.com/serdarkalayci/docman/api/application"
 )
 
 // ToJSON serializes the given interface into a string based JSON format

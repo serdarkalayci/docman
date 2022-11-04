@@ -6,10 +6,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
-	"github.com/serdarkalayci/docman/adapters/comm/rest/dto"
-	"github.com/serdarkalayci/docman/adapters/comm/rest/mappers"
-	"github.com/serdarkalayci/docman/adapters/comm/rest/middleware"
-	"github.com/serdarkalayci/docman/application"
+	"github.com/serdarkalayci/docman/api/adapters/comm/rest/dto"
+	"github.com/serdarkalayci/docman/api/adapters/comm/rest/mappers"
+	"github.com/serdarkalayci/docman/api/adapters/comm/rest/middleware"
+	"github.com/serdarkalayci/docman/api/application"
 )
 
 type validateddocument struct{}

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
-	"github.com/serdarkalayci/docman/domain"
+	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
+	"github.com/serdarkalayci/docman/api/domain"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -7,17 +7,17 @@ tasks:
     silent: true
   deploy-simple:
     cmds:
-      - docker compose -f docker-compose-dev.yaml up -d --build --remove-orphans
+      - docker compose -f docker-compose-dev.yaml -p docman up -d --build --remove-orphans
     silent: true
   deploy-whole:
     cmds:
-      - docker compose -f docker-compose.yaml up -d
+      - docker compose -f docker-compose.yaml -p docman up -d --build --remove-orphans
     silent: true
   stop-simple:
     cmds:
-      - docker compose -f docker-compose-dev.yaml down
+      - docker compose -f docker-compose-dev.yaml -p docman down
     silent: true
   stop-whole:
     cmds:
-      - docker compose -f docker-compose.yaml down
+      - docker compose -f docker-compose.yaml -p docman down
     silent: true

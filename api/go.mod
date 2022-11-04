@@ -1,4 +1,4 @@
-module github.com/serdarkalayci/docman
+module github.com/serdarkalayci/docman/api
 
 go 1.19
 

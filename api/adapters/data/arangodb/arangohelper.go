@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	driver "github.com/arangodb/go-driver"
-	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
+	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
 )
 
 type arangoHelper struct {

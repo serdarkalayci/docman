@@ -1,7 +1,7 @@
 package application
 
 import (
-	"github.com/serdarkalayci/docman/domain"
+	"github.com/serdarkalayci/docman/api/domain"
 )
 
 // DocumentRepository is the interface that we expect to be fulfilled to be used as a backend for Document Service

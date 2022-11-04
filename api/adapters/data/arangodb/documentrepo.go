@@ -9,9 +9,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/rs/zerolog/log"
-	"github.com/serdarkalayci/docman/adapters/data/arangodb/mappers"
-	"github.com/serdarkalayci/docman/application"
-	"github.com/serdarkalayci/docman/domain"
+	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/mappers"
+	"github.com/serdarkalayci/docman/api/application"
+	"github.com/serdarkalayci/docman/api/domain"
 )
 
 // DocumentRepository holds the arangodb client and database name for methods to use
@@ -36,8 +36,8 @@ func (dr DocumentRepository) List(currentFolder string) (domain.Folder, error) {
 	}
 	folderTreeDAO, err := dr.helper.Find(ctx, currentFolder)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting documents")
-		return domain.Folder{}, errors.New("Error getting documents")
+		log.Error().Err(err).Msgf("Error getting folder contents")
+		return domain.Folder{}, errors.New("Error getting folder contents")
 	}
 	folder := mappers.MapFolderTreeDAO2Folder(folderTreeDAO)
 	return folder, nil

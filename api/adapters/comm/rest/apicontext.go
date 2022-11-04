@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/serdarkalayci/docman/application"
+	"github.com/serdarkalayci/docman/api/application"
 
 	"github.com/gorilla/mux"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog/log"
-	middleware "github.com/serdarkalayci/docman/adapters/comm/rest/middleware"
+	middleware "github.com/serdarkalayci/docman/api/adapters/comm/rest/middleware"
 
 	openapimw "github.com/go-openapi/runtime/middleware"
 	"github.com/uber/jaeger-client-go"

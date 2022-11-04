@@ -6,14 +6,14 @@ import (
 	"os/signal"
 	"time"
 
-	rest "github.com/serdarkalayci/docman/adapters/comm/rest"
+	rest "github.com/serdarkalayci/docman/api/adapters/comm/rest"
 
 	"github.com/nicholasjackson/env"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	arangodb "github.com/serdarkalayci/docman/adapters/data/arangodb"
+	arangodb "github.com/serdarkalayci/docman/api/adapters/data/arangodb"
 
-	util "github.com/serdarkalayci/docman/util"
+	util "github.com/serdarkalayci/docman/api/util"
 )
 
 var bindAddress = env.String("BASE_URL", false, ":5500", "Bind address for rest server")
@@ -25,7 +25,7 @@ func main() {
 	//dbContext := memory.NewDataContext()
 	dbContext, err := arangodb.NewDataContext()
 	if err != nil {
-		log.Fatal().Msg("Error received from data source. Quitting")
+		log.Fatal().Msgf("error received from data source. Quitting. Error message is %s", err.Error())
 		os.Exit(1)
 	}
 	//s := rest.NewAPIContext(dbContext, bindAddress)

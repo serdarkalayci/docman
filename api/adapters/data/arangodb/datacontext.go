@@ -2,12 +2,12 @@ package arangodb
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"time"
+
 	driver "github.com/arangodb/go-driver"
 	"github.com/arangodb/go-driver/http"
 	"github.com/nicholasjackson/env"
-	"log"
-	"time"
 )
 
 var databaseName = env.String("DatabaseName", false, "docman", "The database name for arangodb")
@@ -43,25 +43,18 @@ func NewDataContext() (DataContext, error) {
 		Authentication: driver.BasicAuthentication(*username, *password),
 	})
 	if err != nil {
-		// Handle error
+		return DataContext{}, errors.New("cannot create the database client")
 	}
-	users, err := client.Users(ctx)
-	fmt.Println(users)
-	db_exists, err := client.DatabaseExists(ctx, *databaseName)
-
-	if db_exists {
-		fmt.Println("That db exists already")
-	} else {
-		_, err = client.CreateDatabase(ctx, *databaseName, nil)
-
-		if err != nil {
-			log.Fatalf("Failed to create database: %v", err)
-		}
+	// Open a database. In case the database is not ready yet, we retry a few times
+	var db driver.Database
+	count := 0
+	for count < 5 && err != nil {
+		_, err = client.Database(ctx, *databaseName)
+		count++
+		time.Sleep(1000 * time.Millisecond)
 	}
-	// Open a database
-	db, err := client.Database(ctx, *databaseName)
 	if err != nil {
-		// Handle error
+		return DataContext{}, errors.New("cannot connect to the database")
 	}
 	dataContext := DataContext{}
 	dataContext.DocumentRepository = newDocumentRepository(db)

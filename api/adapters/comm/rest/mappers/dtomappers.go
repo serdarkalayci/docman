@@ -1,8 +1,8 @@
 package mappers
 
 import (
-	"github.com/serdarkalayci/docman/adapters/comm/rest/dto"
-	"github.com/serdarkalayci/docman/domain"
+	"github.com/serdarkalayci/docman/api/adapters/comm/rest/dto"
+	"github.com/serdarkalayci/docman/api/domain"
 )
 
 func MapDocumentRequestDTO2Document(doc dto.DocumentRequestDTO) domain.Document {

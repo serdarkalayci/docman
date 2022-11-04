@@ -2,8 +2,8 @@ package mappers
 
 import (
 	"github.com/google/uuid"
-	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
-	"github.com/serdarkalayci/docman/domain"
+	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
+	"github.com/serdarkalayci/docman/api/domain"
 )
 
 // MapDocumentDAO2Document maps dao document to domain document

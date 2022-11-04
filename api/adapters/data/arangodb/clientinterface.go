@@ -3,7 +3,7 @@ package arangodb
 import (
 	"context"
 
-	"github.com/serdarkalayci/docman/adapters/data/arangodb/dao"
+	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
 )
 
 type dbHelper interface {

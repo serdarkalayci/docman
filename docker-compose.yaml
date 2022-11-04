@@ -1,21 +1,35 @@
 version: '3.7'
 services:
   docman:
-    build: .
+    build: api/.
     container_name: docman
     ports:
-      - "5550:5500"
+      - "5550:5550"
     environment: 
       BASE_URL : ":5550"
       JAEGER_AGENT_HOST : "jaeger"
       JAEGER_AGENT_PORT : 6831
       JAEGER_SERVICE_NAME: docman
-      ConnectionString: "arangodb://{username}:{password}@mongo:27017"
+      ConnectionString: "http://arangodb:8529"
       DatabaseName: docman
       DbUserName: root
       DbPassword: password
     networks:
-      - docman-network      
+      - docman-network
+    depends_on:
+      - arangodb
+  arangodb:
+    image: arangodb/arangodb:3.10.0
+    container_name: docman_db
+    ports:
+      - 8529:8529
+    environment:
+      ARANGO_ROOT_PASSWORD: password
+    networks:
+      - docman-network
+    volumes:
+      - ./arangodump:/docker-entrypoint-initdb.d/dumps/docman
+      - dbdata:/var/lib/arangodb3
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: docman_jaeger
@@ -28,14 +42,19 @@ services:
       - "14268:14268"
       - "9411:9411"
     networks:
-      - docman-network      
+      - docman-network     
+    profiles:
+      - full
   prometheus:
     build: prometheus/.
     container_name: docman_prometheus
     networks:
       - docman-network    
+    profiles:
+      - full
   grafana:
     image: grafana/grafana
+    container_name: docman_grafana
     ports:
       - 3000:3000
     volumes:
@@ -43,18 +62,11 @@ services:
     depends_on: 
       - prometheus  
     networks:
-      - docman-network      
-  arangodb:
-    image: arangodb/arangodb:3.10.0
-    ports:
-      - 8529:8529
-    environment:
-      ARANGO_ROOT_PASSWORD: password
-    volumes:
-      - ./arangodump:/docker-entrypoint-initdb.d/dumps/docman
-      - dbdata:/var/lib/arangodb3
+      - docman-network    
+    profiles:
+      - full
 networks:
-  docman-network:    
+  docman-network:     
 volumes:
   dbdata:
   grafana-storage:

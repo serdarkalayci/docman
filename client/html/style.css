@@ -34,16 +34,6 @@ label {
     display: block;
     margin-bottom: 12px;
 }
-.btn {
-    background-color: #4caf50; /* Green */
-    border: none;
-    color: white;
-    padding: 15px 32px;
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-}
 
 .green {
     color: #4caf50;
@@ -66,3 +56,32 @@ label {
 .info {
     color: blue;
 }
+
+.linkbutton {
+    background-color: #bce0bd; /* Green */
+    border: none;
+    color: rgb(130, 125, 125);
+    padding: 10px 5px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+.btnimg {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+#wrapper {
+    display: flex;
+    border: 1px solid black;
+  }
+  #nav {
+      border: 1px solid red;
+      display: grid;
+    }
+  #content {
+      border: 1px solid green;
+  }

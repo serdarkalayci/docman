@@ -34,7 +34,8 @@ type FolderDAO struct {
 	Key string `json:"_key"`
 	// Name is the name of the document.
 	Name string `json:"name"`
-	// Content is the content of the document.
+	// ParentFolderID is the unique identifier of the parent folder.
+	ParentFolderID string `json:"parentFolderID"`
 }
 
 type FolderTreeDAO struct {

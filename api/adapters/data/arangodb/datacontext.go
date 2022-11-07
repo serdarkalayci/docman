@@ -48,8 +48,11 @@ func NewDataContext() (DataContext, error) {
 	// Open a database. In case the database is not ready yet, we retry a few times
 	var db driver.Database
 	count := 0
-	for count < 5 && err != nil {
-		_, err = client.Database(ctx, *databaseName)
+	for count < 5 {
+		db, err = client.Database(ctx, *databaseName)
+		if err == nil {
+			break
+		}
 		count++
 		time.Sleep(1000 * time.Millisecond)
 	}

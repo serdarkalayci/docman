@@ -1,0 +1,1 @@
+{"data":{"_id":"_graphs/filesystem","_key":"filesystem","_rev":"_V_UU4xe---","edgeDefinitions":[{"collection":"filesystem","from":["folders"],"to":["folders","documents"]}],"orphanCollections":[]},"type":2300}

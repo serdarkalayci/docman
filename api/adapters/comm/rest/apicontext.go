@@ -81,6 +81,9 @@ func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server,
 	// create a new serve mux and register the handlers
 	sm := mux.NewRouter()
 	sm.Use(middleware.MetricsMiddleware)
+	// CORS handler
+	optR := sm.Methods(http.MethodOptions).Subrouter()
+	optR.HandleFunc("/{path:.*}", CorsHandler)
 	// handlers for API
 	getR := sm.Methods(http.MethodGet).Subrouter()
 	// Generic handlers

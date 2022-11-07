@@ -44,7 +44,6 @@ type FolderResponseDTO struct {
 	// ParentFolderID is the unique identifier of the parent folder.
 	ParentFolderID string `json:"parentFolderID,omitEmpty"`
 	// Folders is the list of folders in the folder.
-	// Folders is the list of folders in the folder.
 	Folders []FolderResponseDTO `json:"folders,omitEmpty"`
 	// Documents is the list of documents in the folder.
 	Documents []DocumentResponseDTO `json:"documents,omitEmpty"`

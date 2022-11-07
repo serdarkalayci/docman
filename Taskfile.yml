@@ -1,23 +1,40 @@
 version: '3'
 
 tasks:
-  build:
+  client-deploy:
     cmds:
-      - GOOS=js GOARCH=wasm go build -o  static/docman.wasm ./adapters/comm/wasm/*
+      - GOOS=js GOARCH=wasm go build -o  ./client/html/docman.wasm ./client/
+      - docker run --rm --name docman-client -v /Users/serdarkalayci/Projects/github/docman/client/html:/usr/share/nginx/html:ro -p 5800:80 -d nginx
+  client-stop:
+    cmds:
+      - docker container stop docman-client
+  client-build:
+    cmds:
+      - GOOS=js GOARCH=wasm go build -o  ./client/html/docman.wasm ./client/
     silent: true
-  deploy-simple:
+  client-restart:
+    cmds:
+      - task: client-stop
+      - task: client-deploy
+    silent: true
+  server-deploy-simple:
     cmds:
       - docker compose -f docker-compose-dev.yaml -p docman up -d --build --remove-orphans
     silent: true
-  deploy-whole:
+  server-deploy-whole:
     cmds:
       - docker compose -f docker-compose.yaml -p docman up -d --build --remove-orphans
     silent: true
-  stop-simple:
+  server-stop-simple:
     cmds:
       - docker compose -f docker-compose-dev.yaml -p docman down
     silent: true
-  stop-whole:
+  server-stop-whole:
     cmds:
       - docker compose -f docker-compose.yaml -p docman down
+    silent: true
+  server-restart:
+    cmds:
+      - task: server-stop-simple
+      - task: server-deploy-simple
     silent: true

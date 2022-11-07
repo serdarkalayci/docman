@@ -30,6 +30,8 @@ type Folder struct {
 	ID string
 	// Name is the name of the folder.
 	Name string
+	// ParentFolderID is the unique identifier of the parent folder.
+	ParentFolderID string
 	// Folders is the folders in the folder.
 	Folders []Folder
 	// Documents is the documents in the folder.

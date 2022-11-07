@@ -39,8 +39,9 @@ func MapDocumentHistoryArray2DocumentHistoryDTOArray(doc []domain.History) []dto
 
 func MapFolder2FolderResponseDTO(folder domain.Folder) dto.FolderResponseDTO {
 	fr := dto.FolderResponseDTO{
-		ID:   folder.ID,
-		Name: folder.Name,
+		ID:             folder.ID,
+		Name:           folder.Name,
+		ParentFolderID: folder.ParentFolderID,
 	}
 	for _, d := range folder.Documents {
 		fr.Documents = append(fr.Documents, MapDocument2DocumentResponseDTO(d))

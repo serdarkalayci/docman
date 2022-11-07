@@ -26,7 +26,7 @@ func (ah arangoHelper) Find(ctx context.Context, id string) (dao.FolderTreeDAO, 
 		return dao.FolderTreeDAO{}, err
 	}
 	folderTree.CurrentFolder = currentFolder
-	querystring := "FOR v, e, p IN 1..1 OUTBOUND @currentFolder GRAPH 'filesystem' RETURN v"
+	querystring := "FOR v IN 1..1 OUTBOUND @currentFolder GRAPH 'filesystem' RETURN v"
 	bindVars := map[string]interface{}{
 		"currentFolder": fmt.Sprintf("folders/%s", id),
 	}
@@ -54,7 +54,43 @@ func (ah arangoHelper) Find(ctx context.Context, id string) (dao.FolderTreeDAO, 
 			folderTree.Documents = append(folderTree.Documents, doc)
 		}
 	}
+	parentFolder, err := ah.findParent(ctx, folderTree)
+	if err != nil {
+		return dao.FolderTreeDAO{}, err
+	}
+	folderTree.CurrentFolder.ParentFolderID = parentFolder.ID
 	return folderTree, nil
+}
+
+func (ah arangoHelper) findParent(ctx context.Context, folderTree dao.FolderTreeDAO) (dao.FolderDAO, error) {
+	// Open "folders" collection
+	querystring := "FOR v IN 1..1 INBOUND @currentFolder GRAPH 'filesystem' RETURN v"
+	bindVars := map[string]interface{}{
+		"currentFolder": folderTree.CurrentFolder.ID,
+	}
+	cursor, err := ah.db.Query(ctx, querystring, bindVars)
+	if err != nil {
+		return dao.FolderDAO{}, err
+	}
+	defer cursor.Close()
+	for {
+		var doc dao.DocumentDAO
+		meta, err := cursor.ReadDocument(ctx, &doc)
+		if driver.IsNoMoreDocuments(err) {
+			break
+		} else if err != nil {
+			return dao.FolderDAO{}, err
+		}
+		if meta.ID.Collection() == "folders" {
+			folder := dao.FolderDAO{
+				ID:   doc.ID,
+				Key:  doc.Key,
+				Name: doc.Name,
+			}
+			return folder, nil
+		}
+	}
+	return dao.FolderDAO{}, nil // root folder
 }
 
 func (ah arangoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {

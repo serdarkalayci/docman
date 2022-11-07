@@ -9,8 +9,9 @@ import (
 // MapDocumentDAO2Document maps dao document to domain document
 func MapDocumentDAO2Document(pd dao.DocumentDAO) domain.Document {
 	return domain.Document{
-		ID:   pd.ID,
-		Name: pd.Name,
+		ID:      pd.ID,
+		Name:    pd.Name,
+		Content: pd.Content,
 	}
 }
 
@@ -21,8 +22,9 @@ func MapDocument2DocumentDAO(p domain.Document) dao.DocumentDAO {
 		id = uuid.New().String()
 	}
 	return dao.DocumentDAO{
-		ID:   id,
-		Name: p.Name,
+		ID:      id,
+		Name:    p.Name,
+		Content: p.Content,
 	}
 }
 
@@ -35,8 +37,9 @@ func MapFolderDAO2Folder(f dao.FolderDAO) domain.Folder {
 
 func MapFolderTreeDAO2Folder(ft dao.FolderTreeDAO) domain.Folder {
 	folder := domain.Folder{
-		ID:   ft.CurrentFolder.ID,
-		Name: ft.CurrentFolder.Name,
+		ID:             ft.CurrentFolder.ID,
+		Name:           ft.CurrentFolder.Name,
+		ParentFolderID: ft.CurrentFolder.ParentFolderID,
 	}
 	for _, d := range ft.Documents {
 		folder.Documents = append(folder.Documents, MapDocumentDAO2Document(d))

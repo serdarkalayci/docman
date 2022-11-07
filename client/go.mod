@@ -1,3 +1,3 @@
-module github.com/serdarkalayci/gitdoc/client
+module github.com/serdarkalayci/docman/client
 
 go 1.19

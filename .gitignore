@@ -1,3 +1,6 @@
 .idea
 .vscode
 docman
+.DS_Store
+api/api
+client/html/docman.wasm

@@ -2,7 +2,7 @@ package arangodb
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	driver "github.com/arangodb/go-driver"
@@ -43,7 +43,7 @@ func NewDataContext() (DataContext, error) {
 		Authentication: driver.BasicAuthentication(*username, *password),
 	})
 	if err != nil {
-		return DataContext{}, errors.New("cannot create the database client")
+		return DataContext{}, fmt.Errorf("cannot create the database client on %s", *connectionString)
 	}
 	// Open a database. In case the database is not ready yet, we retry a few times
 	var db driver.Database
@@ -54,10 +54,10 @@ func NewDataContext() (DataContext, error) {
 			break
 		}
 		count++
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(2 * time.Second)
 	}
 	if err != nil {
-		return DataContext{}, errors.New("cannot connect to the database")
+		return DataContext{}, fmt.Errorf("cannot connect to the database on %s", *connectionString)
 	}
 	dataContext := DataContext{}
 	dataContext.DocumentRepository = newDocumentRepository(db)

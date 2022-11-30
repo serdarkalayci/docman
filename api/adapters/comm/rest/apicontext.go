@@ -97,7 +97,7 @@ func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server,
 	getR.HandleFunc("/document/{id}", apiContext.GetDocument)
 	postPR := sm.Methods(http.MethodPost).Subrouter()
 	postPR.Use(apiContext.MiddlewareValidateNewDocument)
-	postPR.HandleFunc("/document", apiContext.AddDocument)
+	postPR.HandleFunc("/document/{id}", apiContext.AddDocument)
 	putPR := sm.Methods(http.MethodPut).Subrouter()
 	putPR.Use(apiContext.MiddlewareValidateNewDocument)
 	putPR.HandleFunc("/document/{id}", apiContext.UpdateDocument)

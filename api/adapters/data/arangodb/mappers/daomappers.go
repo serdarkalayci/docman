@@ -1,7 +1,6 @@
 package mappers
 
 import (
-	"github.com/google/uuid"
 	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
 	"github.com/serdarkalayci/docman/api/domain"
 )
@@ -17,12 +16,7 @@ func MapDocumentDAO2Document(pd dao.DocumentDAO) domain.Document {
 
 // MapDocument2DocumentDAO maps domain document to dao document
 func MapDocument2DocumentDAO(p domain.Document) dao.DocumentDAO {
-	id := p.ID
-	if id == "" {
-		id = uuid.New().String()
-	}
 	return dao.DocumentDAO{
-		ID:      id,
 		Name:    p.Name,
 		Content: p.Content,
 	}
@@ -48,4 +42,11 @@ func MapFolderTreeDAO2Folder(ft dao.FolderTreeDAO) domain.Folder {
 		folder.Folders = append(folder.Folders, MapFolderDAO2Folder(f))
 	}
 	return folder
+}
+
+func MapFolder2FolderDAO(f domain.Folder) dao.FolderDAO {
+	return dao.FolderDAO{
+		ID:   f.ID,
+		Name: f.Name,
+	}
 }

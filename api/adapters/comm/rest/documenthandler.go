@@ -51,8 +51,11 @@ func (ctx *APIContext) AddDocument(rw http.ResponseWriter, r *http.Request) {
 	// Get document data from payload
 	documentDTO := r.Context().Value(validateddocument{}).(dto.DocumentRequestDTO)
 	document := mappers.MapDocumentRequestDTO2Document(documentDTO)
+	// parse the document id from the url
+	vars := mux.Vars(r)
+	parentID := vars["id"]
 	DocumentService := application.NewDocumentService(ctx.documentRepo)
-	document, err := DocumentService.Add(document)
+	document, err := DocumentService.Add(document, parentID)
 	if err != nil {
 		respondWithError(rw, r, 500, err.Error())
 	} else {

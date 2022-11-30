@@ -6,114 +6,97 @@ import (
 	"fmt"
 
 	driver "github.com/arangodb/go-driver"
-	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
 )
 
 type arangoHelper struct {
 	db driver.Database
 }
 
-func (ah arangoHelper) Find(ctx context.Context, id string) (dao.FolderTreeDAO, error) {
-	var folderTree dao.FolderTreeDAO
-	var currentFolder dao.FolderDAO
-	// Open "folders" collection
-	col, err := ah.db.Collection(nil, "folders")
+func (ah arangoHelper) beginTransaction(ctx context.Context, cols driver.TransactionCollections) (driver.TransactionID, error) {
+	return ah.db.BeginTransaction(ctx, cols, &driver.BeginTransactionOptions{})
+}
+
+func (ah arangoHelper) commitTransaction(ctx context.Context, id driver.TransactionID) error {
+	return ah.db.CommitTransaction(ctx, id, &driver.CommitTransactionOptions{})
+}
+
+func (ah arangoHelper) abortTransaction(ctx context.Context, id driver.TransactionID) error {
+	return ah.db.AbortTransaction(ctx, id, &driver.AbortTransactionOptions{})
+}
+
+func (ah arangoHelper) findItem(ctx context.Context, id string, collection string, item interface{}) error {
+	// Open specified collection
+	col, err := ah.db.Collection(nil, collection)
 	if err != nil {
-		return dao.FolderTreeDAO{}, err
+		return err
 	}
-	_, err = col.ReadDocument(nil, id, &currentFolder)
+	// Try to find the item in the corresponding collection with the given id
+	_, err = col.ReadDocument(nil, id, item)
 	if err != nil {
-		return dao.FolderTreeDAO{}, err
+		return err
 	}
-	folderTree.CurrentFolder = currentFolder
-	querystring := "FOR v IN 1..1 OUTBOUND @currentFolder GRAPH 'filesystem' RETURN v"
+	return nil
+}
+
+func (ah arangoHelper) findChildren(ctx context.Context, id string, graphName string) (driver.Cursor, error) {
+	querystring := fmt.Sprintf("FOR v IN 1..1 OUTBOUND @currentItem GRAPH '%s' RETURN v", graphName)
 	bindVars := map[string]interface{}{
-		"currentFolder": fmt.Sprintf("folders/%s", id),
+		"currentItem": id,
 	}
 	cursor, err := ah.db.Query(ctx, querystring, bindVars)
 	if err != nil {
-		return dao.FolderTreeDAO{}, err
+		return nil, err
 	}
-	defer cursor.Close()
-	for {
-		var doc dao.DocumentDAO
-		meta, err := cursor.ReadDocument(ctx, &doc)
-		if driver.IsNoMoreDocuments(err) {
-			break
-		} else if err != nil {
-			return dao.FolderTreeDAO{}, err
-		}
-		if meta.ID.Collection() == "folders" {
-			folder := dao.FolderDAO{
-				ID:   doc.ID,
-				Key:  doc.Key,
-				Name: doc.Name,
-			}
-			folderTree.SubFolders = append(folderTree.SubFolders, folder)
-		} else {
-			folderTree.Documents = append(folderTree.Documents, doc)
-		}
-	}
-	parentFolder, err := ah.findParent(ctx, folderTree)
-	if err != nil {
-		return dao.FolderTreeDAO{}, err
-	}
-	folderTree.CurrentFolder.ParentFolderID = parentFolder.ID
-	return folderTree, nil
+	return cursor, nil
 }
 
-func (ah arangoHelper) findParent(ctx context.Context, folderTree dao.FolderTreeDAO) (dao.FolderDAO, error) {
+func (ah arangoHelper) findParent(ctx context.Context, id string, graphName string) (driver.Cursor, error) {
 	// Open "folders" collection
-	querystring := "FOR v IN 1..1 INBOUND @currentFolder GRAPH 'filesystem' RETURN v"
+	querystring := fmt.Sprintf("FOR v IN 1..1 INBOUND @currentItem GRAPH '%s' RETURN v", graphName)
 	bindVars := map[string]interface{}{
-		"currentFolder": folderTree.CurrentFolder.ID,
+		"currentItem": id,
 	}
 	cursor, err := ah.db.Query(ctx, querystring, bindVars)
 	if err != nil {
-		return dao.FolderDAO{}, err
+		return nil, err
 	}
-	defer cursor.Close()
-	for {
-		var doc dao.DocumentDAO
-		meta, err := cursor.ReadDocument(ctx, &doc)
-		if driver.IsNoMoreDocuments(err) {
-			break
-		} else if err != nil {
-			return dao.FolderDAO{}, err
-		}
-		if meta.ID.Collection() == "folders" {
-			folder := dao.FolderDAO{
-				ID:   doc.ID,
-				Key:  doc.Key,
-				Name: doc.Name,
-			}
-			return folder, nil
-		}
-	}
-	return dao.FolderDAO{}, nil // root folder
+	return cursor, nil
 }
 
-func (ah arangoHelper) InsertOne(ctx context.Context, document interface{}) (string, error) {
-	return "", errors.New("not implemented")
-}
-func (ah arangoHelper) FindOne(ctx context.Context, id string) (dao.DocumentDAO, error) {
-	var documentDAO dao.DocumentDAO
-	// Open "documents" collection
-	col, err := ah.db.Collection(nil, "documents")
+func (ah arangoHelper) insertItem(ctx context.Context, document interface{}, collection string) (string, error) {
+	// Open specified collection
+	col, err := ah.db.Collection(ctx, collection)
 	if err != nil {
-		return documentDAO, err
+		return "", err
 	}
-	_, err = col.ReadDocument(nil, id, &documentDAO)
+	meta, err := col.CreateDocument(ctx, document)
 	if err != nil {
-		return documentDAO, err
+		return "", err
 	}
-	return documentDAO, nil
+	return meta.Key, nil
 }
 
-func (ah arangoHelper) UpdateOne(ctx context.Context, id string, update interface{}) (int, error) {
+func (ah arangoHelper) insertEdge(ctx context.Context, fromID string, toID string, collection string) (string, error) {
+	// Open specified collection
+	col, err := ah.db.Collection(nil, collection)
+	if err != nil {
+		return "", err
+	}
+	edge := driver.EdgeDocument{
+		From: driver.DocumentID(fromID),
+		To:   driver.DocumentID(toID),
+	}
+	meta, err := col.CreateDocument(ctx, edge)
+	if err != nil {
+		return "", err
+	}
+	return meta.Key, nil
+}
+
+func (ah arangoHelper) updateItem(ctx context.Context, id string, collection string, update interface{}) (int, error) {
 	return 0, errors.New("not implemented")
 }
 
-func (ah arangoHelper) DeleteOne(ctx context.Context, id string) (int, error) {
+func (ah arangoHelper) deleteItem(ctx context.Context, collection string, id string) (int, error) {
 	return 0, errors.New("not implemented")
 }

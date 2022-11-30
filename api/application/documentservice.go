@@ -7,7 +7,8 @@ import (
 // DocumentRepository is the interface that we expect to be fulfilled to be used as a backend for Document Service
 type DocumentRepository interface {
 	List(string) (domain.Folder, error)
-	Add(document domain.Document) (domain.Document, error)
+	AddDocument(document domain.Document, parentID string) (domain.Document, error)
+	AddFolder(folder domain.Folder, parentID string) (domain.Folder, error)
 	Get(string) (domain.Document, error)
 	Update(string, domain.Document) error
 	Delete(string) error
@@ -37,8 +38,8 @@ func (ps DocumentService) List(currentFolder string) (domain.Folder, error) {
 
 // Add adds a new document to the included repository, and returns it
 // Returns an error if the repository returns one
-func (ps DocumentService) Add(p domain.Document) (domain.Document, error) {
-	document, err := ps.documentRepo.Add(p)
+func (ps DocumentService) Add(p domain.Document, parentID string) (domain.Document, error) {
+	document, err := ps.documentRepo.AddDocument(p, parentID)
 	return document, err
 }
 

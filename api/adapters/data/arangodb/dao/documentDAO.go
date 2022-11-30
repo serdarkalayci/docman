@@ -5,17 +5,15 @@ import "time"
 // DocumentDAO represents the struct of document type to be stored in mongoDB
 type DocumentDAO struct {
 	// ID is the unique identifier of the document.
-	ID string `json:"_id"`
+	ID string `json:"_id,omitempty"`
 	// Key is the unique identifier of the document.
-	Key string `json:"_key"`
+	Key string `json:"_key,omitempty"`
 	// Name is the name of the document.
 	Name string `json:"name"`
 	// Content is the content of the document.
-	Path string
-	// Content is the content of the document.
 	Content string `json:"content"`
 	// DocumentHistory is the history of the document.
-	DocumentHistory []HistoryDAO
+	DocumentHistory []HistoryDAO `json:"documentHistory,omitempty"`
 }
 
 type HistoryDAO struct {
@@ -29,9 +27,9 @@ type HistoryDAO struct {
 
 type FolderDAO struct {
 	// ID is the unique identifier of the folder.
-	ID string `json:"_id"`
+	ID string `json:"_id,omitempty"`
 	// Key is the unique identifier of the folder.
-	Key string `json:"_key"`
+	Key string `json:"_key,omitempty"`
 	// Name is the name of the document.
 	Name string `json:"name"`
 	// ParentFolderID is the unique identifier of the parent folder.

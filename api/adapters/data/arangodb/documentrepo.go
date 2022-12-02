@@ -36,14 +36,22 @@ func (dr DocumentRepository) List(id string) (domain.Folder, error) {
 	var currentFolder dao.FolderDAO  // This item will be used to hold the current folder
 	// Lets first get the item (in this case the folder) itself
 	err := dr.helper.findItem(ctx, id, "folders", &currentFolder)
+	if err != nil {
+		log.Error().Err(err).Msgf("error finding folder")
+		return domain.Folder{}, err
+	}
 	folderTree.CurrentFolder = currentFolder
 	// Lets get the children of the item and
 	cursor, err := dr.helper.findChildren(ctx, fmt.Sprintf("folders/%s", id), "filesystem")
+	if err != nil {
+		log.Error().Err(err).Msgf("error finding children")
+		return domain.Folder{}, err
+	}
 	defer cursor.Close()
 	for {
 		var doc dao.DocumentDAO
 		meta, err := cursor.ReadDocument(ctx, &doc)
-		if driver.IsNoMoreDocuments(err) {
+		if err != nil && driver.IsNoMoreDocuments(err) {
 			break
 		} else if err != nil {
 			return domain.Folder{}, err

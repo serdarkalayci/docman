@@ -7,6 +7,7 @@ import (
 
 	driver "github.com/arangodb/go-driver"
 	"github.com/serdarkalayci/docman/api/adapters/data/arangodb/dao"
+	"github.com/serdarkalayci/docman/api/application"
 	"github.com/serdarkalayci/docman/api/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -238,5 +239,28 @@ func TestDocumentRepository_List(t *testing.T) {
 	}
 	folder, err = dr.List("123")
 	assert.Equal(t, domain.Folder{ID: "123", Name: "test", ParentFolderID: "111", Folders: []domain.Folder{{ID: "111", Name: "Folder 111", ParentFolderID: "", Folders: []domain.Folder(nil), Documents: []domain.Document(nil)}}, Documents: []domain.Document{{ID: "222", Name: "File 222", Content: "File 222 Content", DocumentHistory: []domain.History(nil)}}}, folder)
+	assert.Nil(t, err)
+}
+
+func TestDocumentRepository_Get(t *testing.T) {
+	dr := DocumentRepository{
+		helper: MockArangoHelper{},
+	}
+	// Lets test what happens when the function cannot find the item
+	findItemFunc = func(ctx context.Context, id string, collection string, item interface{}) error {
+		return fmt.Errorf("cannot find item")
+	}
+	document, err := dr.Get("123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, &application.ErrorCannotFinddocument{ID: "123"}, err)
+	findItemFunc = func(ctx context.Context, id string, collection string, item interface{}) error {
+		item.(*dao.DocumentDAO).ID = "123"
+		item.(*dao.DocumentDAO).Key = "documents/123"
+		item.(*dao.DocumentDAO).Name = "test"
+		item.(*dao.DocumentDAO).Content = "test content"
+		return nil
+	}
+	document, err = dr.Get("123")
+	assert.Equal(t, domain.Document{ID: "123", Name: "test", Content: "test content", DocumentHistory: []domain.History(nil)}, document)
 	assert.Nil(t, err)
 }

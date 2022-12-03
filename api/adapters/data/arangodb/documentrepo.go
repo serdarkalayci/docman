@@ -104,7 +104,7 @@ func (dr DocumentRepository) Get(id string) (domain.Document, error) {
 	documentDAO := dao.DocumentDAO{}
 	err := dr.helper.findItem(ctx, id, "documents", &documentDAO)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting document")
+		log.Error().Err(err).Msgf("error getting document")
 		return domain.Document{}, &application.ErrorCannotFinddocument{ID: id}
 	}
 	return mappers.MapDocumentDAO2Document(documentDAO), nil
@@ -142,7 +142,6 @@ func (dr DocumentRepository) AddDocument(p domain.Document, parentID string) (do
 		log.Error().Err(err).Msgf("Error adding document to filesystem")
 		return domain.Document{}, errors.New("Error adding document to filesystem")
 	}
-
 	dr.helper.commitTransaction(ctx, tranID)
 	return p, nil
 }

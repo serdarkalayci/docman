@@ -12,8 +12,13 @@ type arangoHelper struct {
 	db driver.Database
 }
 
-func (ah arangoHelper) beginTransaction(ctx context.Context, cols driver.TransactionCollections) (driver.TransactionID, error) {
-	return ah.db.BeginTransaction(ctx, cols, &driver.BeginTransactionOptions{})
+func (ah arangoHelper) beginTransaction(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error) {
+	tranID, err := ah.db.BeginTransaction(ctx, driver.TransactionCollections{Write: cols}, &driver.BeginTransactionOptions{})
+	if err != nil {
+		return "0", nil, err
+	}
+	tranctx := driver.WithTransactionID(ctx, tranID)
+	return tranID, tranctx, nil
 }
 
 func (ah arangoHelper) commitTransaction(ctx context.Context, id driver.TransactionID) error {

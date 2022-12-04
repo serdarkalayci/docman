@@ -116,20 +116,20 @@ func (dr DocumentRepository) AddDocument(p domain.Document, parentID string) (do
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	doc := mappers.MapDocument2DocumentDAO(p)
-	cols := driver.TransactionCollections{
-		Write: []string{"documents", "filesystem"},
-	}
-	tranID, err := dr.helper.beginTransaction(ctx, cols)
-	tranctx := driver.WithTransactionID(ctx, tranID)
+	cols := []string{"documents", "filesystem"}
+	tranID, tranctx, err := dr.helper.beginTransaction(ctx, cols)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error starting transaction while adding document")
-		return domain.Document{}, errors.New("Error adding folder")
+		log.Error().Err(err).Msgf("error starting transaction while adding document")
+		return domain.Document{}, errors.New("error adding document")
 	}
 	newID, err := dr.helper.insertItem(tranctx, doc, "documents")
 	if err != nil {
-		dr.helper.abortTransaction(ctx, tranID)
-		log.Error().Err(err).Msgf("Error adding document")
-		return domain.Document{}, errors.New("Error adding document")
+		tranerr := dr.helper.abortTransaction(ctx, tranID)
+		if tranerr != nil {
+			log.Error().Err(tranerr).Msgf("error aborting transaction while adding document")
+		}
+		log.Error().Err(err).Msgf("error adding document")
+		return domain.Document{}, errors.New("error adding document")
 	}
 	p.ID = newID
 	// Now lets add the document to the filesystem
@@ -137,12 +137,16 @@ func (dr DocumentRepository) AddDocument(p domain.Document, parentID string) (do
 	if err != nil {
 		tranerr := dr.helper.abortTransaction(ctx, tranID)
 		if tranerr != nil {
-			log.Error().Err(tranerr).Msgf("Error aborting transaction while adding document")
+			log.Error().Err(tranerr).Msgf("error aborting transaction while adding document")
 		}
-		log.Error().Err(err).Msgf("Error adding document to filesystem")
-		return domain.Document{}, errors.New("Error adding document to filesystem")
+		log.Error().Err(err).Msgf("error adding document to filesystem")
+		return domain.Document{}, errors.New("error adding document to filesystem")
 	}
-	dr.helper.commitTransaction(ctx, tranID)
+	err = dr.helper.commitTransaction(ctx, tranID)
+	if err != nil {
+		log.Error().Err(err).Msgf("error committing transaction while adding document")
+		return domain.Document{}, errors.New("error adding document")
+	}
 	return p, nil
 }
 
@@ -152,20 +156,17 @@ func (dr DocumentRepository) AddFolder(p domain.Folder, parentID string) (domain
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	folder := mappers.MapFolder2FolderDAO(p)
-	cols := driver.TransactionCollections{
-		Write: []string{"folders", "filesystem"},
-	}
-	tranID, err := dr.helper.beginTransaction(ctx, cols)
+	cols := []string{"folders", "filesystem"}
+	tranID, tranctx, err := dr.helper.beginTransaction(ctx, cols)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error starting transaction while adding folder")
-		return domain.Folder{}, errors.New("Error adding folder")
+		log.Error().Err(err).Msgf("error starting transaction while adding folder")
+		return domain.Folder{}, errors.New("error adding folder")
 	}
-	tranctx := driver.WithTransactionID(ctx, tranID)
 	newID, err := dr.helper.insertItem(tranctx, folder, "folders")
 	if err != nil {
 		dr.helper.abortTransaction(ctx, tranID)
-		log.Error().Err(err).Msgf("Error adding folder")
-		return domain.Folder{}, errors.New("Error adding folder")
+		log.Error().Err(err).Msgf("error adding folder")
+		return domain.Folder{}, errors.New("error adding folder")
 	}
 	p.ID = newID
 	// Now lets add the document to the filesystem
@@ -173,10 +174,10 @@ func (dr DocumentRepository) AddFolder(p domain.Folder, parentID string) (domain
 	if err != nil {
 		tranerr := dr.helper.abortTransaction(ctx, tranID)
 		if tranerr != nil {
-			log.Error().Err(tranerr).Msgf("Error aborting transaction while adding folder")
+			log.Error().Err(tranerr).Msgf("error aborting transaction while adding folder")
 		}
-		log.Error().Err(err).Msgf("Error adding folder to filesystem")
-		return domain.Folder{}, errors.New("Error adding folder to filesystem")
+		log.Error().Err(err).Msgf("error adding folder to filesystem")
+		return domain.Folder{}, errors.New("error adding folder to filesystem")
 	}
 	dr.helper.commitTransaction(ctx, tranID)
 	return p, nil

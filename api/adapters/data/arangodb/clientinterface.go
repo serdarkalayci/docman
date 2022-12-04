@@ -7,7 +7,7 @@ import (
 )
 
 type dbHelper interface {
-	beginTransaction(ctx context.Context, cols driver.TransactionCollections) (driver.TransactionID, error)
+	beginTransaction(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error)
 	commitTransaction(ctx context.Context, id driver.TransactionID) error
 	abortTransaction(ctx context.Context, id driver.TransactionID) error
 	findItem(ctx context.Context, id string, collection string, item interface{}) error

@@ -19,7 +19,7 @@ type MockArangoHelper struct {
 }
 
 var (
-	beginTransactionFunc  func(ctx context.Context, cols driver.TransactionCollections) (driver.TransactionID, error)
+	beginTransactionFunc  func(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error)
 	commitTransactionFunc func(ctx context.Context, id driver.TransactionID) error
 	abortTransactionFunc  func(ctx context.Context, id driver.TransactionID) error
 	findItemFunc          func(ctx context.Context, id string, collection string, item interface{}) error
@@ -31,7 +31,7 @@ var (
 	deleteItemFunc        func(ctx context.Context, collection string, id string) (int, error)
 )
 
-func (ah MockArangoHelper) beginTransaction(ctx context.Context, cols driver.TransactionCollections) (driver.TransactionID, error) {
+func (ah MockArangoHelper) beginTransaction(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error) {
 	return beginTransactionFunc(ctx, cols)
 }
 
@@ -253,6 +253,7 @@ func TestDocumentRepository_Get(t *testing.T) {
 	document, err := dr.Get("123")
 	assert.Equal(t, domain.Document{}, document)
 	assert.Equal(t, &application.ErrorCannotFinddocument{ID: "123"}, err)
+	// Lets fix findItem function and test what happens when the function cannot find the parent
 	findItemFunc = func(ctx context.Context, id string, collection string, item interface{}) error {
 		item.(*dao.DocumentDAO).ID = "123"
 		item.(*dao.DocumentDAO).Key = "documents/123"
@@ -262,5 +263,84 @@ func TestDocumentRepository_Get(t *testing.T) {
 	}
 	document, err = dr.Get("123")
 	assert.Equal(t, domain.Document{ID: "123", Name: "test", Content: "test content", DocumentHistory: []domain.History(nil)}, document)
+	assert.Nil(t, err)
+}
+
+func TestDocumentRepository_AddDocument(t *testing.T) {
+	dr := DocumentRepository{
+		helper: MockArangoHelper{},
+	}
+	//Lets test what happens then transaction creation fails
+	beginTransactionFunc = func(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error) {
+		return "0", nil, fmt.Errorf("cannot create transaction")
+	}
+	document, err := dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, fmt.Errorf("error adding document"), err)
+	// Lets fix transaction creation (and add abortTransactionFunc also) and test what happens when the insertion of the document fails and aborting the transaction fails
+	beginTransactionFunc = func(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error) {
+		return "123123", context.TODO(), nil
+	}
+	abortTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return fmt.Errorf("cannot abort transaction")
+	}
+	insertItemFunc = func(ctx context.Context, document interface{}, collection string) (string, error) {
+		return "", fmt.Errorf("cannot insert document")
+	}
+	document, err = dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, fmt.Errorf("error adding document"), err)
+
+	// Lets fix transaction abortion and test what happens when the insertion of the document fails
+	beginTransactionFunc = func(ctx context.Context, cols []string) (driver.TransactionID, context.Context, error) {
+		return "123123", context.TODO(), nil
+	}
+	abortTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return nil
+	}
+	insertItemFunc = func(ctx context.Context, document interface{}, collection string) (string, error) {
+		return "", fmt.Errorf("cannot insert document")
+	}
+	document, err = dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, fmt.Errorf("error adding document"), err)
+	// Lets fix document insertion and test what happens when the insertion of the parent fails and aborting the transaction fails
+	insertItemFunc = func(ctx context.Context, document interface{}, collection string) (string, error) {
+		return "456", nil
+	}
+	abortTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return fmt.Errorf("cannot abort transaction")
+	}
+	insertEdgeFunc = func(ctx context.Context, from string, to string, graphName string) (string, error) {
+		return "", fmt.Errorf("cannot insert edge")
+	}
+	document, err = dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, fmt.Errorf("error adding document to filesystem"), err)
+	// Lets fix transaction abortion and edge insertion and test what happens when commiting of transaction fails
+	abortTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return nil
+	}
+	commitTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return fmt.Errorf("cannot commit transaction")
+	}
+	insertEdgeFunc = func(ctx context.Context, from string, to string, graphName string) (string, error) {
+		return "789", nil
+	}
+	document, err = dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{}, document)
+	assert.Equal(t, fmt.Errorf("error adding document"), err)
+	// Lets fix transaction commit and test the happy path
+	abortTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return nil
+	}
+	commitTransactionFunc = func(ctx context.Context, id driver.TransactionID) error {
+		return nil
+	}
+	insertEdgeFunc = func(ctx context.Context, from string, to string, graphName string) (string, error) {
+		return "789", nil
+	}
+	document, err = dr.AddDocument(domain.Document{Name: "test", Content: "test content"}, "123")
+	assert.Equal(t, domain.Document{ID: "456", Name: "test", Content: "test content", DocumentHistory: []domain.History(nil)}, document)
 	assert.Nil(t, err)
 }

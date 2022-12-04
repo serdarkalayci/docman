@@ -110,77 +110,54 @@ func (dr DocumentRepository) Get(id string) (domain.Document, error) {
 	return mappers.MapDocumentDAO2Document(documentDAO), nil
 }
 
-// AddDocument adds a new document to the underlying database.
+// AddItem adds a new document or a new folder to the underlying database.
 // It returns the document inserted on success or error
-func (dr DocumentRepository) AddDocument(p domain.Document, parentID string) (domain.Document, error) {
+func (dr DocumentRepository) AddItem(p interface{}, parentID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	doc := mappers.MapDocument2DocumentDAO(p)
-	cols := []string{"documents", "filesystem"}
+	var cols []string
+	var collection string
+	switch v := p.(type) {
+	case domain.Document:
+		collection = "documents"
+		cols = []string{"documents", "filesystem"}
+	case domain.Folder:
+		collection = "folders"
+		cols = []string{"folders", "filesystem"}
+	default:
+		log.Error().Msgf("unknown type %T to add to the database", v)
+		return "", errors.New("invalid type")
+	}
 	tranID, tranctx, err := dr.helper.beginTransaction(ctx, cols)
 	if err != nil {
-		log.Error().Err(err).Msgf("error starting transaction while adding document")
-		return domain.Document{}, errors.New("error adding document")
+		log.Error().Err(err).Msgf("error starting transaction while adding the item")
+		return "", errors.New("error adding the item")
 	}
-	newID, err := dr.helper.insertItem(tranctx, doc, "documents")
+	newID, err := dr.helper.insertItem(tranctx, p, collection)
 	if err != nil {
 		tranerr := dr.helper.abortTransaction(ctx, tranID)
 		if tranerr != nil {
-			log.Error().Err(tranerr).Msgf("error aborting transaction while adding document")
+			log.Error().Err(tranerr).Msgf("error aborting transaction while adding the item")
 		}
-		log.Error().Err(err).Msgf("error adding document")
-		return domain.Document{}, errors.New("error adding document")
+		log.Error().Err(err).Msgf("error adding the item")
+		return "", errors.New("error adding the item")
 	}
-	p.ID = newID
 	// Now lets add the document to the filesystem
-	_, err = dr.helper.insertEdge(tranctx, fmt.Sprintf("folders/%s", parentID), fmt.Sprintf("documents/%s", newID), "filesystem")
+	_, err = dr.helper.insertEdge(tranctx, fmt.Sprintf("folders/%s", parentID), fmt.Sprintf("%s/%s", collection, newID), "filesystem")
 	if err != nil {
 		tranerr := dr.helper.abortTransaction(ctx, tranID)
 		if tranerr != nil {
-			log.Error().Err(tranerr).Msgf("error aborting transaction while adding document")
+			log.Error().Err(tranerr).Msgf("error aborting transaction while adding the item")
 		}
-		log.Error().Err(err).Msgf("error adding document to filesystem")
-		return domain.Document{}, errors.New("error adding document to filesystem")
+		log.Error().Err(err).Msgf("error adding the item to filesystem")
+		return "", errors.New("error adding the item to filesystem")
 	}
 	err = dr.helper.commitTransaction(ctx, tranID)
 	if err != nil {
-		log.Error().Err(err).Msgf("error committing transaction while adding document")
-		return domain.Document{}, errors.New("error adding document")
+		log.Error().Err(err).Msgf("error committing transaction while adding the item")
+		return "", errors.New("error adding the item")
 	}
-	return p, nil
-}
-
-// AddFolder adds a new folder to the underlying database.
-// It returns the folder inserted on success or error
-func (dr DocumentRepository) AddFolder(p domain.Folder, parentID string) (domain.Folder, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	folder := mappers.MapFolder2FolderDAO(p)
-	cols := []string{"folders", "filesystem"}
-	tranID, tranctx, err := dr.helper.beginTransaction(ctx, cols)
-	if err != nil {
-		log.Error().Err(err).Msgf("error starting transaction while adding folder")
-		return domain.Folder{}, errors.New("error adding folder")
-	}
-	newID, err := dr.helper.insertItem(tranctx, folder, "folders")
-	if err != nil {
-		dr.helper.abortTransaction(ctx, tranID)
-		log.Error().Err(err).Msgf("error adding folder")
-		return domain.Folder{}, errors.New("error adding folder")
-	}
-	p.ID = newID
-	// Now lets add the document to the filesystem
-	_, err = dr.helper.insertEdge(tranctx, fmt.Sprintf("folders/%s", parentID), fmt.Sprintf("documents/%s", newID), "filesystem")
-	if err != nil {
-		tranerr := dr.helper.abortTransaction(ctx, tranID)
-		if tranerr != nil {
-			log.Error().Err(tranerr).Msgf("error aborting transaction while adding folder")
-		}
-		log.Error().Err(err).Msgf("error adding folder to filesystem")
-		return domain.Folder{}, errors.New("error adding folder to filesystem")
-	}
-	dr.helper.commitTransaction(ctx, tranID)
-	return p, nil
+	return newID, nil
 }
 
 // Update updates fields of a single document from the database with the given unique identifier

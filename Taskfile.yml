@@ -3,14 +3,14 @@ version: '3'
 tasks:
   client-deploy:
     cmds:
-      - GOOS=js GOARCH=wasm go build -o  ./client/html/docman.wasm ./client/
-      - docker run --rm --name docman-client -v /Users/serdarkalayci/Projects/github/docman/client/html:/usr/share/nginx/html:ro -p 5800:80 -d nginx
+      - GOOS=js GOARCH=wasm go build -o  ./wasmclient/html/docman.wasm ./wasmclient/
+      - docker run --rm --name docman-client -v /Users/serdarkalayci/Projects/github/docman/wasmclient/html:/usr/share/nginx/html:ro -p 5800:80 -d nginx
   client-stop:
     cmds:
       - docker container stop docman-client
   client-build:
     cmds:
-      - GOOS=js GOARCH=wasm go build -o  ./client/html/docman.wasm ./client/
+      - GOOS=js GOARCH=wasm go build -o  ./wasmclient/html/docman.wasm ./client/
     silent: true
   client-restart:
     cmds:

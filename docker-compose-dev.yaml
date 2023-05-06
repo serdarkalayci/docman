@@ -1,33 +1,39 @@
 version: '3.7'
 services:
-  docman:
-    build: api/.
-    container_name: docman
+  document:
+    build: api/document/.
+    container_name: document
     ports:
       - "5550:5550"
     environment: 
       BASE_URL : ":5550"
-      ConnectionString: "http://arangodb:8529"
+      ConnectionString: "document-db:26257"
       DatabaseName: docman
-      DbUserName: root
-      DbPassword: password
+      DbUserName: docmanuser
+      DbPassword: docmanpassword
     networks:
       - docman-network
     depends_on:
-      - arangodb
-  arangodb:
-    image: arangodb/arangodb:3.10.0
-    container_name: docman_db
+      - document-db
+  document-db:
+    image: cockroachdb/cockroach:latest
+    container_name: document-db
+    hostname: document-db
     ports:
-      - 8529:8529
+      - 26257:26257
+      - 8080:8080
     environment:
-      ARANGO_ROOT_PASSWORD: password
+      COCKROACH_DATABASE: docman
+      COCKROACH_USER: docmanuser
+      COCKROACH_PASSWORD: docmanpassword
+    command: start-single-node
     networks:
       - docman-network
     volumes:
-      - ./arangodump:/docker-entrypoint-initdb.d/dumps/docman
-      - dbdata:/var/lib/arangodb3
+      - ./api/database/document:/docker-entrypoint-initdb.d
+      - documentdbdata:/cockroach/cockroach-data"
 networks:
-  docman-network:     
+  docman-network:
+    driver: bridge
 volumes:
-  dbdata:
+  documentdbdata:

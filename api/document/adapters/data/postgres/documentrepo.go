@@ -11,6 +11,7 @@ import (
 	"github.com/serdarkalayci/docman/api/document/adapters/data/postgres/mappers"
 	"github.com/serdarkalayci/docman/api/document/application"
 	"github.com/serdarkalayci/docman/api/document/domain"
+	"go.opentelemetry.io/otel"
 )
 
 // DocumentRepository holds the arangodb client and database name for methods to use
@@ -26,9 +27,9 @@ func newDocumentRepository(database *pgx.Conn) DocumentRepository {
 
 // List loads all the document records from tha database and returns it
 // Returns an error if database fails to provide service
-func (dr DocumentRepository) List(spaceID string) ([]application.DocumentListItem, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+func (dr DocumentRepository) List(ctx context.Context, spaceID string) ([]application.DocumentListItem, error) {
+	ctx, childSpan := otel.Tracer("Docman").Start(ctx, "Data:DocumentRepository:List")
+	defer childSpan.End()
 	documentList := []application.DocumentListItem{}
 	rows, err := dr.db.Query(ctx, `WITH RECURSIVE document_hierarchy AS ( 
 		SELECT id, name, parent_id, 1 AS depth

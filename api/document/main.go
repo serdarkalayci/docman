@@ -7,6 +7,8 @@ import (
 	"time"
 
 	rest "github.com/serdarkalayci/docman/api/document/adapters/comm/rest"
+	"github.com/serdarkalayci/docman/api/document/adapters/tracing"
+	"go.opentelemetry.io/otel"
 
 	"github.com/nicholasjackson/env"
 	"github.com/rs/zerolog"
@@ -29,8 +31,11 @@ func main() {
 		os.Exit(1)
 	}
 	//s := rest.NewAPIContext(dbContext, bindAddress)
-	s, closer := rest.NewAPIContext(bindAddress, dbContext.HealthRepository, dbContext.DocumentRepository)
-	defer closer.Close()
+	s := rest.NewAPIContext(bindAddress, dbContext.HealthRepository, dbContext.DocumentRepository)
+	tp := tracing.SetupTracer()	
+	otel.SetTracerProvider(tp)
+
+
 	// start the http server
 	go func() {
 		log.Debug().Msgf("Starting server on %s", *bindAddress)
@@ -38,6 +43,9 @@ func main() {
 		err := s.ListenAndServe()
 		if err != nil {
 			log.Error().Err(err).Msg("Error starting rest server")
+			if err := tp.Shutdown(context.Background()); err != nil {
+				log.Error().Err(err)
+			}
 			os.Exit(1)
 		}
 	}()

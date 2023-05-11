@@ -3,6 +3,7 @@ package rest
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/zerolog/log"
@@ -20,20 +21,21 @@ type validateddocument struct{}
 //	500: errorResponse
 
 // GetSpace gets the tree of all the documents inside a space.
-func (ctx *APIContext) GetSpace(rw http.ResponseWriter, r *http.Request) {
-	span := createSpan("docman.GetSpace", r)
-	defer span.Finish()
+func (apiContext *APIContext) GetSpace(rw http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	ctx, span := createSpan(ctx, "Rest:DocumentHandler:GetSpace", r)
+	defer span.End()
 	// parse the document id from the url
 	vars := mux.Vars(r)
 	id := vars["id"]
-	DocumentService := application.NewDocumentService(ctx.documentRepo)
-	folder, err := DocumentService.List(id)
+	DocumentService := application.NewDocumentService(apiContext.documentRepo)
+	folder, err := DocumentService.List(ctx, id)
 	if err != nil {
 		respondWithError(rw, r, 500, "Cannot get folder contents from database")
 	} else {
 		respondWithJSON(rw, r, 200, mappers.MapDocumentTreeItemArray2DocumentTreeDTOArray(folder))
 	}
-
 }
 
 // swagger:route POST /document document Adddocument
@@ -43,7 +45,7 @@ func (ctx *APIContext) GetSpace(rw http.ResponseWriter, r *http.Request) {
 //	500: errorResponse
 
 // // Adddocument adds a new documents to the Titanic
-// func (ctx *APIContext) AddDocument(rw http.ResponseWriter, r *http.Request) {
+// func (apiContext *APIContext) AddDocument(rw http.ResponseWriter, r *http.Request) {
 // 	span := createSpan("docman.Add", r)
 // 	defer span.Finish()
 // 	// Get document data from payload
@@ -52,7 +54,7 @@ func (ctx *APIContext) GetSpace(rw http.ResponseWriter, r *http.Request) {
 // 	// parse the document id from the url
 // 	vars := mux.Vars(r)
 // 	parentID := vars["id"]
-// 	DocumentService := application.NewDocumentService(ctx.documentRepo)
+// 	DocumentService := application.NewDocumentService(apiContext.documentRepo)
 // 	document, err := DocumentService.Add(document, parentID)
 // 	if err != nil {
 // 		respondWithError(rw, r, 500, err.Error())
@@ -70,15 +72,17 @@ func (ctx *APIContext) GetSpace(rw http.ResponseWriter, r *http.Request) {
 //	500: errorResponse
 
 // GetDocument gets the documents of the Titanic with the given id
-func (ctx *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
-	span := createSpan("docman.GetOne", r)
-	defer span.Finish()
+func (apiContext *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	ctx, span := createSpan(ctx, "docman.GetOne", r)
+	defer span.End()
 
 	// parse the document id from the url
 	vars := mux.Vars(r)
 	id := vars["id"]
-	DocumentService := application.NewDocumentService(ctx.documentRepo)
-	document, err := DocumentService.Get(id)
+	DocumentService := application.NewDocumentService(apiContext.documentRepo)
+	document, err := DocumentService.Get(ctx, id)
 	if err != nil {
 		switch err.(type) {
 		case *application.ErrorIDFormat:
@@ -102,7 +106,7 @@ func (ctx *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
 //	500: errorResponse
 
 // UpdateDocument updates an existing documents on the Titanic
-// func (ctx *APIContext) UpdateDocument(rw http.ResponseWriter, r *http.Request) {
+// func (apiContext *APIContext) UpdateDocument(rw http.ResponseWriter, r *http.Request) {
 // 	span := createSpan("docman.Update", r)
 // 	defer span.Finish()
 
@@ -112,7 +116,7 @@ func (ctx *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
 // 	// Get document data from payload
 // 	documentDTO := r.Context().Value(validateddocument{}).(dto.DocumentRequestDTO)
 // 	document := mappers.MapDocumentRequestDTO2Document(documentDTO)
-// 	DocumentService := application.NewDocumentService(ctx.documentRepo)
+// 	DocumentService := application.NewDocumentService(apiContext.documentRepo)
 // 	err := DocumentService.Update(id, document)
 // 	if err != nil {
 // 		switch err.(type) {
@@ -136,14 +140,16 @@ func (ctx *APIContext) GetDocument(rw http.ResponseWriter, r *http.Request) {
 //	500: errorResponse
 
 // DeleteDocument deletes the documents of the Titanic with the given id
-func (ctx *APIContext) DeleteDocument(rw http.ResponseWriter, r *http.Request) {
-	span := createSpan("docman.Delete", r)
-	defer span.Finish()
+func (apiContext *APIContext) DeleteDocument(rw http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	ctx, span := createSpan(ctx, "docman.Delete", r)
+	defer span.End()
 
 	// parse the document id from the url
 	vars := mux.Vars(r)
 	id := vars["id"]
-	DocumentService := application.NewDocumentService(ctx.documentRepo)
+	DocumentService := application.NewDocumentService(apiContext.documentRepo)
 	err := DocumentService.Delete(id)
 	if err != nil {
 		switch err.(type) {
@@ -160,7 +166,7 @@ func (ctx *APIContext) DeleteDocument(rw http.ResponseWriter, r *http.Request) {
 }
 
 // MiddlewareValidateNewDocument Checks the integrity of new document in the request and calls next if ok
-func (ctx *APIContext) MiddlewareValidateNewDocument(next http.Handler) http.Handler {
+func (apiContext *APIContext) MiddlewareValidateNewDocument(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		user, err := middleware.ExtractAdddocumentPayload(r)
 		if err != nil {
@@ -168,7 +174,7 @@ func (ctx *APIContext) MiddlewareValidateNewDocument(next http.Handler) http.Han
 			return
 		}
 		// validate the user
-		errs := ctx.validation.Validate(user)
+		errs := apiContext.validation.Validate(user)
 		if errs != nil && len(errs) != 0 {
 			log.Error().Err(errs[0]).Msg("Error validating the document")
 
@@ -178,8 +184,8 @@ func (ctx *APIContext) MiddlewareValidateNewDocument(next http.Handler) http.Han
 		}
 
 		// add the rating to the context
-		ctx := context.WithValue(r.Context(), validateddocument{}, *user)
-		r = r.WithContext(ctx)
+		apiContext := context.WithValue(r.Context(), validateddocument{}, *user)
+		r = r.WithContext(apiContext)
 
 		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		next.ServeHTTP(rw, r)

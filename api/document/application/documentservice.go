@@ -1,11 +1,16 @@
 // Package application contains the application logic of the document management system.
 package application
 
-import "github.com/serdarkalayci/docman/api/document/domain"
+import (
+	"context"
+
+	"github.com/serdarkalayci/docman/api/document/domain"
+	"go.opentelemetry.io/otel"
+)
 
 // DocumentRepository is the interface that we expect to be fulfilled to be used as a backend for Document Service
 type DocumentRepository interface {
-	List(spaceID string) ([]DocumentListItem, error)
+	List(ctx context.Context, spaceID string) ([]DocumentListItem, error)
 	Add(document domain.Document, parentID string, spaceID string) (string, error)
 	Get(documentID string) (domain.Document, error)
 	Update(documentID string, document domain.Document) error
@@ -37,8 +42,10 @@ func NewDocumentService(dr DocumentRepository) DocumentService {
 
 // List loads all the data from the included repository from the given space and returns them
 // Returns an error if the repository returns one
-func (ps DocumentService) List(spaceID string) ([]domain.DocumentTreeItem, error) {
-	doclist, err := ps.documentRepo.List(spaceID)
+func (ps DocumentService) List(ctx context.Context, spaceID string) ([]domain.DocumentTreeItem, error) {
+	ctx, childSpan := otel.Tracer("Docman").Start(ctx, "Application:DocumentService:List")
+	defer childSpan.End()
+	doclist, err := ps.documentRepo.List(ctx, spaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +82,7 @@ func (ps DocumentService) Add(p domain.Document, parentID string, spaceID string
 
 // Get selects the document from the included repository with the given unique identifier, and returns it
 // Returns an error if the repository returns one
-func (ps DocumentService) Get(id string) (domain.Document, error) {
+func (ps DocumentService) Get(ctx context.Context, id string) (domain.Document, error) {
 	document, err := ps.documentRepo.Get(id)
 	return document, err
 }

@@ -1,25 +1,20 @@
 package rest
 
 import (
-	"io"
+	"context"
 	"net/http"
 	"time"
 
+	openapimw "github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/zerolog/log"
 	middleware "github.com/serdarkalayci/docman/api/document/adapters/comm/rest/middleware"
 	"github.com/serdarkalayci/docman/api/document/application"
+	"go.opentelemetry.io/otel/trace"
 
-	openapimw "github.com/go-openapi/runtime/middleware"
-	"github.com/uber/jaeger-client-go"
-	jprom "github.com/uber/jaeger-lib/metrics/prometheus"
-
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 // APIContext handler for getting and updating Ratings
@@ -29,52 +24,22 @@ type APIContext struct {
 	healthRepo    application.HealthRepository
 	documentRepo  application.DocumentRepository
 	configuration map[string]string
+	tp 		  trace.TracerProvider
 }
 
 // NewAPIContext returns a new APIContext handler with the given logger
 // func NewAPIContext(dc DBContext, bindAddress *string, ur application.UserRepository) *http.Server {
-func NewAPIContext(bindAddress *string, hr application.HealthRepository, pr application.DocumentRepository) (*http.Server, io.Closer) {
+func NewAPIContext(bindAddress *string, hr application.HealthRepository, pr application.DocumentRepository) (*http.Server) {
 	apiContext := &APIContext{
 		healthRepo:   hr,
 		documentRepo: pr,
 	}
-	s, c := apiContext.prepareContext(bindAddress)
-	return s, c
+	return apiContext.prepareContext(bindAddress)
+
 }
 
-func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server, io.Closer) {
-	// Example logger and metrics factory. Use github.com/uber/jaeger-client-go/log
-	// and github.com/uber/jaeger-lib/metrics respectively to bind to real logging and metrics
-	// frameworks.
-	jLogger := jaegerlog.StdLogger
-	jMetricsFactory := jprom.New()
-
-	// Sample configuration for testing. Use constant sampling to sample every trace
-	// and enable LogSpan to log every span via configured Logger.
-	cfg, err := jaegercfg.FromEnv()
-	if err != nil || cfg.ServiceName == "" {
-		log.Error().Err(err).Msg("Cannot load tracer config from env")
-		cfg = &jaegercfg.Configuration{
-			ServiceName: "docmanAPI",
-			Sampler:     &jaegercfg.SamplerConfig{},
-			Reporter:    &jaegercfg.ReporterConfig{},
-		}
-	}
-	cfg.Sampler.Type = jaeger.SamplerTypeConst
-	cfg.Sampler.Param = 1
-	cfg.Reporter.LogSpans = true
-
-	// Initialize tracer with a logger and a metrics factory
-	tracer, closer, err := cfg.NewTracer(
-		jaegercfg.Logger(jLogger),
-		jaegercfg.Metrics(jMetricsFactory),
-	)
-	if err != nil {
-		log.Error().Err(err).Msg("Cannot create tracer")
-	}
-	// Set the singleton opentracing.Tracer with the Jaeger tracer.
-	opentracing.SetGlobalTracer(tracer)
-
+func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server) {
+	otel.SetTextMapPropagator(propagation.TraceContext{})
 	apiContext.validation = middleware.NewValidation()
 
 	// create a new serve mux and register the handlers
@@ -120,27 +85,28 @@ func (apiContext *APIContext) prepareContext(bindAddress *string) (*http.Server,
 	prometheus.MustRegister(middleware.RequestCounterVec)
 	prometheus.MustRegister(middleware.RequestDurationGauge)
 
-	return s, closer
+	return s
 }
 
-// createSpan creates a new openTracing.Span with the given name and returns it
-func createSpan(spanName string, r *http.Request) (span opentracing.Span) {
-	tracer := opentracing.GlobalTracer()
+// createSpan extracts the span from the request if exists or creates a new one using openTelemetry. Span with the given name and returns it
+func createSpan(ctx context.Context, opName string, r *http.Request) (context.Context, trace.Span) {
+	spanContext := otel.GetTextMapPropagator().Extract(
+		ctx,
+		propagation.HeaderCarrier(r.Header))
 
-	wireContext, err := opentracing.GlobalTracer().Extract(
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(r.Header))
-	if err != nil {
-		// The method is called without a span context in the http header.
-		//
-		span = tracer.StartSpan(spanName)
-	} else {
-		// Create the span referring to the RPC client if available.
-		// If wireContext == nil, a root span will be created.
-		span = opentracing.StartSpan(spanName, ext.RPCServerOption(wireContext))
-	}
-	ext.SpanKindRPCClient.Set(span)
-	ext.HTTPUrl.Set(span, r.URL.RequestURI())
-	ext.HTTPMethod.Set(span, r.Method)
-	return span
+	ctx, span := otel.Tracer("Docman").Start(
+		spanContext,
+		opName,
+	)
+	return ctx, span
 }
+
+// injectSpanToResponse injects the span context into the response header
+func injectSpanContextToResponse(ctx context.Context, w http.ResponseWriter) {
+	// Inject the span context into the response header
+	otel.GetTextMapPropagator().Inject(
+		ctx,
+		propagation.HeaderCarrier(w.Header()))
+}
+
+

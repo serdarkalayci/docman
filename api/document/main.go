@@ -8,7 +8,6 @@ import (
 
 	rest "github.com/serdarkalayci/docman/api/document/adapters/comm/rest"
 	"github.com/serdarkalayci/docman/api/document/adapters/tracing"
-	"go.opentelemetry.io/otel"
 
 	"github.com/nicholasjackson/env"
 	"github.com/rs/zerolog"
@@ -19,6 +18,7 @@ import (
 )
 
 var bindAddress = env.String("BASE_URL", false, ":5500", "Bind address for rest server")
+var otlpEndpoint = env.String("OTLP_ENDPOINT", false, "localhost:30080", "OpenTelemetry Collector endpoint")
 
 func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -32,10 +32,11 @@ func main() {
 	}
 	//s := rest.NewAPIContext(dbContext, bindAddress)
 	s := rest.NewAPIContext(bindAddress, dbContext.HealthRepository, dbContext.DocumentRepository)
-	tp := tracing.SetupTracer()	
-	otel.SetTracerProvider(tp)
-
-
+	tpShutdown, err := tracing.InitProvider(*otlpEndpoint)	
+	if err != nil {
+		log.Fatal().Msgf("error received from tracing provider. Quitting. Error message is %s", err.Error())
+		os.Exit(1)
+	}
 	// start the http server
 	go func() {
 		log.Debug().Msgf("Starting server on %s", *bindAddress)
@@ -43,7 +44,7 @@ func main() {
 		err := s.ListenAndServe()
 		if err != nil {
 			log.Error().Err(err).Msg("Error starting rest server")
-			if err := tp.Shutdown(context.Background()); err != nil {
+			if err := tpShutdown(context.Background()); err != nil {
 				log.Error().Err(err)
 			}
 			os.Exit(1)
